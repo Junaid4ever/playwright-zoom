@@ -54,7 +54,6 @@ async def start(name, user, wait_time, meetingcode, passcode):
             wait_time -= 1
         print(f"{name} ended!")
 
-        await browser.close()
 
 async def main():
     global running
