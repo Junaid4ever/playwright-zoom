@@ -45,13 +45,11 @@ proxylist = [
 warnings.filterwarnings('ignore')
 fake = Faker('en_US')
 MUTEX = threading.Lock()
-
+running = True  # Define the running variable
 
 def sync_print(text):
     with MUTEX:
         print(text)
-
-
 
 def get_driver(proxy):
     user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36"
@@ -73,15 +71,12 @@ def get_driver(proxy):
     driver = webdriver.Chrome(options=options)
     return driver
 
-
-
 def driver_wait(driver, locator, by, secs=10, condition=ec.element_to_be_clickable):
     wait = WebDriverWait(driver=driver, timeout=secs)
     element = wait.until(condition((by, locator)))
     return element
 
-
-def start(name, proxy, user, wait_time):
+def start(name, proxy, user, wait_time, meetingcode, passcode):
     sync_print(f"{name} started!")
     driver = get_driver(proxy)
     driver.get(f'https://zoom.us/wc/join/{meetingcode}')
@@ -90,13 +85,13 @@ def start(name, proxy, user, wait_time):
         accept_btn = driver.find_element(By.ID, 'onetrust-accept-btn-handler')
         accept_btn.click()
     except Exception as e:
-        pass
+        print(f"{name} exception: {e}")
 
     try:
         agree_btn = driver.find_element(By.ID, 'wc_agree1')
         agree_btn.click()
     except Exception as e:
-        pass
+        print(f"{name} exception: {e}")
 
     try:
         input_box = driver.find_element(By.CSS_SELECTOR, 'input[type="text"]')
@@ -106,24 +101,24 @@ def start(name, proxy, user, wait_time):
         join_button = driver.find_element(By.CSS_SELECTOR, 'button.preview-join-button')
         join_button.click()
     except Exception as e:
-        pass
+        print(f"{name} exception: {e}")
 
     try:
-        audio_button = driver.find_element(By.XPATH, '//button[text()="Join Audio by Computer"]')
+        audio_button = driver.find_element(By.XPATH, '//button[contains(text(), "Join Audio by Computer")]')
         time.sleep(13)
         audio_button.click()
         print(f"{name} mic aayenge.")
     except Exception as e:
-        print(f"{name} mic nahe aayenge. ", e)
+        print(f"{name} mic nahe aayenge. {e}")
 
     sync_print(f"{name} sleep for {wait_time} seconds ...")
-    while running and wait_time > 0:
+    while wait_time > 0:
         time.sleep(1)
         wait_time -= 1
     sync_print(f"{name} ended!")
 
-
 def main():
+    global running  # Declare the global variable
     wait_time = sec * 60
     workers = []
     for i in range(number):
@@ -136,13 +131,12 @@ def main():
         except IndexError:
             break
         wk = threading.Thread(target=start, args=(
-            f'[Thread{i}]', proxy, user, wait_time))
+            f'[Thread{i}]', proxy, user, wait_time, meetingcode, passcode))
         workers.append(wk)
     for wk in workers:
         wk.start()
     for wk in workers:
         wk.join()
-
 
 if __name__ == '__main__':
     number = int(input("Enter number of Users: "))
